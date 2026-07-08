@@ -173,7 +173,11 @@
 
       <div class="card">
         <div class="eyebrow">Registrar venta acumulada por hora</div>
-        <p class="muted" style="margin-bottom:8px;">Ingresa la venta <strong>acumulada</strong> y el total de <strong>boletas</strong> hasta esa hora. Puedes actualizar cualquier hora.</p>
+        <div class="field" style="margin-bottom:10px;">
+          <span class="field-label">Día a registrar</span>
+          <input type="date" id="reg-fecha-sel"/>
+        </div>
+        <p class="muted" style="margin-bottom:8px;">Ingresa la venta <strong>acumulada</strong> y el total de <strong>boletas</strong> hasta esa hora. Puedes elegir un día anterior para cargar ventas atrasadas.</p>
         <div id="horas-cont"></div>
         <p id="reg-feedback" class="feedback"></p>
       </div>
@@ -301,6 +305,7 @@
   /* ── REGISTRO ── */
   let estadoHoy = null;
   const horasCont = document.getElementById('horas-cont');
+  function regFecha() { const el = document.getElementById('reg-fecha-sel'); return (el && el.value) ? el.value : hoyISO(); }
 
   function pintarConsolidado(pref, e) {
     document.getElementById(pref+'-meta').textContent = e.metaCiva ? clp(e.metaCiva) : 'Sin meta';
@@ -335,7 +340,7 @@
   }
 
   async function cargarRegistro() {
-    const fecha = hoyISO();
+    const fecha = regFecha();
     const { data, error } = await sb.rpc('estado_ventas', { p_fecha: fecha });
     if (error) { document.getElementById('reg-feedback').textContent = 'Error: ' + error.message; document.getElementById('reg-feedback').className='feedback error'; return; }
     estadoHoy = data;
@@ -350,7 +355,7 @@
     if (isNaN(v) || v < 0) { fb.textContent='Venta inválida en '+h; fb.className='feedback error'; return; }
     if (isNaN(b) || b < 0) { fb.textContent='Boletas inválidas en '+h; fb.className='feedback error'; return; }
     btn.disabled = true; fb.textContent='Guardando '+h+'…'; fb.className='feedback';
-    const { data, error } = await sb.rpc('registrar_venta', { p_fecha: hoyISO(), p_hora: h, p_venta: v, p_boletas: b, p_cajero: '' });
+    const { data, error } = await sb.rpc('registrar_venta', { p_fecha: regFecha(), p_hora: h, p_venta: v, p_boletas: b, p_cajero: '' });
     btn.disabled = false;
     if (error) { fb.textContent='Error: '+error.message; fb.className='feedback error'; return; }
     estadoHoy = data;
@@ -467,6 +472,7 @@
   });
 
   /* Arranque */
+  (function(){ const el = document.getElementById('reg-fecha-sel'); if (el) { el.value = hoyISO(); el.addEventListener('change', cargarRegistro); } })();
   cargarRegistro();
   cargarAdmins();
   </script>
