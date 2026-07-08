@@ -185,6 +185,31 @@
         <div class="eyebrow">Ver día</div>
         <div class="field"><span class="field-label">Fecha</span><input type="date" id="panel-fecha"/></div>
       </div>
+
+      <div class="card" style="background:linear-gradient(135deg,#0f172a,#1d4ed8); color:#fff; border:none;">
+        <div class="eyebrow" style="color:var(--azul-300);">Acumulado del mes</div>
+        <div style="font-size:11px; color:var(--azul-300); font-weight:700; letter-spacing:1px; text-transform:uppercase;" id="mes-nombre">—</div>
+        <div class="cons-grid" style="margin-top:10px;">
+          <div class="cons-field" style="background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.15);">
+            <div class="cf-label" style="color:var(--azul-300);">Meta del mes (c/IVA)</div>
+            <div class="cf-val small" style="color:#fff;" id="mes-meta">—</div>
+          </div>
+          <div class="cons-field" style="background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.15);">
+            <div class="cf-label" style="color:var(--azul-300);">Venta del mes</div>
+            <div class="cf-val small" style="color:#fff;" id="mes-total">$0</div>
+          </div>
+          <div class="cons-field span2" style="background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.15);">
+            <div class="cf-label" style="color:var(--azul-300);">Cumplimiento del mes</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+              <div class="cf-val" style="color:#fff;" id="mes-pct">0%</div>
+              <span class="estado-pill no" id="mes-estado">—</span>
+            </div>
+            <div class="barra" style="background:rgba(255,255,255,0.2);"><div class="barra-fill" id="mes-barra" style="width:0%"></div></div>
+            <div style="font-size:12px; color:rgba(255,255,255,0.8); margin-top:6px;" id="mes-falta">—</div>
+          </div>
+        </div>
+      </div>
+
       <div class="hero">
         <div class="fecha" id="pan-fecha">—</div>
         <div class="meta-label">Meta final del día (c/IVA)</div>
@@ -351,6 +376,27 @@
         + `<td style="padding:9px 12px; border-bottom:1px solid var(--gris-100); text-align:right;">${cur?(Number(cur.boletas)||0).toLocaleString('es-CL'):'—'}</td>`;
       tb.appendChild(tr);
     });
+    cargarResumenMes(fecha.slice(0,7));
+  }
+
+  async function cargarResumenMes(periodo) {
+    const { data, error } = await sb.rpc('resumen_mes', { p_periodo: periodo });
+    if (error || !data) return;
+    const [y,m] = periodo.split('-').map(Number);
+    const nombreMes = new Date(y, m-1, 1).toLocaleDateString('es-CL', { month:'long', year:'numeric' });
+    document.getElementById('mes-nombre').textContent = nombreMes;
+    document.getElementById('mes-meta').textContent = data.metaCiva ? clp(data.metaCiva) : 'Sin meta';
+    document.getElementById('mes-total').textContent = clp(data.totalMes);
+    const pct = Math.round((data.cumplimiento||0)*100);
+    document.getElementById('mes-pct').textContent = pct + '%';
+    document.getElementById('mes-barra').style.width = Math.min(100, pct) + '%';
+    const est = document.getElementById('mes-estado');
+    if (!data.metaCiva) { est.className='estado-pill no'; est.textContent='Sin meta'; }
+    else if (data.cumplida) { est.className='estado-pill ok'; est.textContent='✅ Meta cumplida'; }
+    else { est.className='estado-pill no'; est.textContent='❌ Meta no lograda'; }
+    document.getElementById('mes-falta').textContent = (data.metaCiva && !data.cumplida)
+      ? ('Faltan ' + clp(data.falta) + ' para la meta del mes')
+      : (data.cumplida ? ('Superó la meta del mes por ' + clp((data.totalMes||0)-(data.metaCiva||0))) : '');
   }
   document.getElementById('panel-fecha').addEventListener('change', cargarPanel);
 
