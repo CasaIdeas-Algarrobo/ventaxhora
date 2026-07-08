@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Venta por Hora">
+  <meta name="theme-color" content="#0a0f1e">
+  <title>Venta por Hora – Algarrobo</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --azul-900:#1e293b; --azul-700:#1d4ed8; --azul-600:#2563eb; --azul-500:#2563eb;
+      --azul-400:#3b82f6; --azul-300:#93c5fd; --azul-100:#dbeafe; --azul-50:#eff6ff;
+      --cian:#2563eb; --blanco:#ffffff;
+      --gris-900:#111827; --gris-700:#374151; --gris-500:#6b7280;
+      --gris-200:#e5e7eb; --gris-100:#f3f4f6; --gris-50:#f9fafb; --fondo:#f0f2f5;
+      --verde:#16a34a; --verde-bg:#dcfce7; --amarillo:#d97706; --amarillo-bg:#fef3c7;
+      --rojo:#dc2626; --rojo-bg:#fee2e2;
+      --font:'Segoe UI', system-ui, -apple-system, sans-serif; --radio:14px;
+      --sombra:0 4px 24px rgba(0,0,0,0.18); --sombra-lg:0 8px 40px rgba(0,0,0,0.28);
+    }
+    html { height:100%; -webkit-text-size-adjust:100%; }
+    body { font-family:var(--font); background:var(--fondo); min-height:100vh; color:var(--gris-900);
+      display:flex; flex-direction:column; padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
+
+    .header { background:var(--blanco); box-shadow:0 1px 8px rgba(0,0,0,0.07); position:sticky; top:0; z-index:50; border-bottom:1px solid var(--gris-200); }
+    .header-inner { max-width:680px; margin:0 auto; padding:14px 20px; display:flex; align-items:center; gap:14px; }
+    .logo-wrap { flex-shrink:0; background:var(--gris-50); border:1px solid var(--gris-200); border-radius:10px; padding:7px 11px; }
+    .logo { height:36px; width:auto; object-fit:contain; display:block; }
+    .header-text { flex:1; min-width:0; }
+    .header-eyebrow { font-size:9px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:var(--azul-500); margin-bottom:2px; }
+    .header-title { font-size:20px; font-weight:900; color:var(--gris-900); letter-spacing:-0.5px; line-height:1; }
+    .header-loc { font-size:11px; color:var(--gris-500); margin-top:3px; font-weight:500; }
+
+    .tabbar { position:sticky; top:65px; z-index:49; background:var(--blanco); border-bottom:1px solid var(--gris-200); }
+    .tabbar-inner { max-width:680px; margin:0 auto; padding:0 12px; display:flex; gap:6px; }
+    .tab-btn { flex:1; padding:13px 8px 12px; background:none; border:none; border-bottom:3px solid transparent; cursor:pointer;
+      font-family:var(--font); font-size:13px; font-weight:700; color:var(--gris-500);
+      display:flex; align-items:center; justify-content:center; gap:6px; -webkit-tap-highlight-color:transparent; transition:color .15s, border-color .15s; }
+    .tab-btn .ic { font-size:16px; }
+    .tab-btn.active { color:var(--azul-600); border-bottom-color:var(--azul-600); }
+
+    .main { flex:1; max-width:680px; width:100%; margin:0 auto; padding:18px 16px 48px; display:flex; flex-direction:column; gap:14px; }
+    .view { display:none; flex-direction:column; gap:14px; }
+    .view.active { display:flex; }
+
+    .card { background:var(--blanco); border-radius:var(--radio); padding:18px; box-shadow:var(--sombra); border:1px solid var(--gris-200); }
+    .eyebrow { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:var(--azul-500); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+    .eyebrow::before { content:''; display:block; width:3px; height:14px; background:var(--azul-500); border-radius:2px; }
+    .muted { color:var(--gris-500); font-size:13px; line-height:1.5; }
+    h2.card-title { font-size:18px; font-weight:900; letter-spacing:-0.3px; margin-bottom:6px; }
+    h3.card-title { font-size:15px; font-weight:800; margin-bottom:12px; }
+
+    .field { display:flex; flex-direction:column; gap:5px; }
+    .field-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gris-500); }
+    select, input[type=text], input[type=number], input[type=password], input[type=date], input[type=month] {
+      padding:12px 13px; border:2px solid var(--gris-200); border-radius:11px; font-size:16px;
+      font-family:var(--font); color:var(--gris-900); background:var(--gris-50); outline:none; -webkit-appearance:none; width:100%; }
+    select:focus, input:focus { border-color:var(--azul-400); background:var(--blanco); box-shadow:0 0 0 4px rgba(59,130,246,0.1); }
+
+    .btn { padding:13px 20px; border:none; border-radius:11px; font-size:15px; font-weight:700; cursor:pointer; font-family:var(--font); min-height:48px;
+      -webkit-tap-highlight-color:transparent; transition:all .15s; display:inline-flex; align-items:center; justify-content:center; gap:6px; white-space:nowrap; }
+    .btn:active { transform:scale(0.97); opacity:0.92; }
+    .btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .btn.primary { background:linear-gradient(135deg, var(--azul-600), var(--azul-500)); color:var(--blanco); box-shadow:0 4px 14px rgba(29,78,216,0.35); }
+    .btn.ghost { background:var(--gris-100); color:var(--gris-700); border:2px solid var(--gris-200); }
+    .btn.small { padding:8px 14px; font-size:13px; min-height:auto; }
+    .feedback { font-size:13px; margin-top:10px; min-height:18px; font-weight:600; }
+    .feedback.ok { color:var(--verde); }
+    .feedback.error { color:var(--rojo); }
+
+    /* Meta / consolidado destacados */
+    .hero { background:linear-gradient(135deg, var(--azul-900), var(--azul-600)); color:#fff; border-radius:14px; padding:20px; }
+    .hero .fecha { font-size:11px; color:var(--azul-300); font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+    .hero .meta-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--azul-300); font-weight:700; margin-top:10px; }
+    .hero .meta-val { font-size:34px; font-weight:900; letter-spacing:-1px; line-height:1; margin-top:3px; }
+    .hero .meta-sub { font-size:12px; color:rgba(255,255,255,0.8); margin-top:6px; }
+
+    .cons-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .cons-field { background:var(--gris-50); border:1.5px solid var(--gris-200); border-radius:11px; padding:14px; }
+    .cons-field.span2 { grid-column:1 / -1; }
+    .cf-label { font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--gris-500); margin-bottom:5px; }
+    .cf-val { font-size:24px; font-weight:900; letter-spacing:-0.5px; color:var(--gris-900); }
+    .cf-val.small { font-size:18px; }
+    .estado-pill { display:inline-flex; align-items:center; gap:6px; padding:7px 16px; border-radius:22px; font-size:14px; font-weight:800; }
+    .estado-pill.ok { background:var(--verde-bg); color:var(--verde); }
+    .estado-pill.no { background:var(--rojo-bg); color:var(--rojo); }
+    .barra { height:14px; background:var(--gris-200); border-radius:8px; overflow:hidden; margin-top:8px; }
+    .barra-fill { height:100%; background:linear-gradient(90deg, var(--azul-500), var(--verde)); border-radius:8px; transition:width .4s; }
+
+    /* Filas por hora */
+    .hora-row { display:grid; grid-template-columns:64px 1fr 1fr auto; gap:8px; align-items:end; padding:10px 0; border-bottom:1px solid var(--gris-100); }
+    .hora-row:last-child { border-bottom:none; }
+    .hora-label { font-weight:800; font-size:14px; color:var(--gris-900); padding-bottom:12px; }
+    .hora-row .field-label { font-size:8px; }
+    .hora-row.registrada { background:var(--verde-bg); border-radius:10px; padding:10px 8px; margin:2px 0; border-bottom:none; }
+    .mini-input { padding:9px 10px; font-size:15px; }
+    .btn-hora { padding:9px 12px; font-size:13px; min-height:42px; }
+
+    /* Grid de metas mensuales */
+    .metas-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:4px; }
+    .meta-dia { display:flex; align-items:center; gap:8px; background:var(--gris-50); border:1.5px solid var(--gris-200); border-radius:10px; padding:6px 10px; }
+    .meta-dia .dnum { font-size:12px; font-weight:800; color:var(--gris-500); width:44px; flex-shrink:0; }
+    .meta-dia input { padding:8px 9px; font-size:14px; border-width:1.5px; }
+    .footer { text-align:center; padding:16px; font-size:11px; color:var(--gris-500); border-top:1px solid var(--gris-200); background:var(--blanco); padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
+    .hidden { display:none !important; }
+
+    @media (max-width:480px) {
+      .header-title { font-size:17px; }
+      .main { padding:14px 12px 36px; gap:12px; }
+      .card { padding:16px; }
+      .tabbar { top:64px; }
+      .cons-grid { grid-template-columns:1fr; }
+      .metas-grid { grid-template-columns:1fr; }
+      .hora-row { grid-template-columns:52px 1fr 1fr auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo-wrap">
+        <img src="https://www.casaideas.com.bo/static/media/logo.40b7cd09.png" alt="Casaideas" class="logo" onerror="this.style.display='none'"/>
+      </div>
+      <div class="header-text">
+        <div class="header-eyebrow">Venta Diaria</div>
+        <div class="header-title">Venta por Hora</div>
+        <div class="header-loc">📍 Algarrobo</div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabbar">
+    <div class="tabbar-inner">
+      <button class="tab-btn active" data-tab="registro"><span class="ic">🕐</span>Registro</button>
+      <button class="tab-btn" data-tab="panel"><span class="ic">📊</span>Panel</button>
+      <button class="tab-btn" data-tab="metas"><span class="ic">🎯</span>Metas</button>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ═══════════ REGISTRO ═══════════ -->
+    <section id="view-registro" class="view active">
+      <div class="hero">
+        <div class="fecha" id="reg-fecha">—</div>
+        <div class="meta-label">Meta del día (c/IVA)</div>
+        <div class="meta-val" id="reg-meta">—</div>
+        <div class="meta-sub" id="reg-meta-neta">—</div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">Consolidado del día</div>
+        <div class="cons-grid">
+          <div class="cons-field"><div class="cf-label">Venta acumulada</div><div class="cf-val" id="reg-total">$0</div></div>
+          <div class="cons-field"><div class="cf-label">Boletas</div><div class="cf-val" id="reg-boletas">0</div></div>
+          <div class="cons-field span2">
+            <div class="cf-label">Cumplimiento</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+              <div class="cf-val" id="reg-pct">0%</div>
+              <span class="estado-pill no" id="reg-estado">— </span>
+            </div>
+            <div class="barra"><div class="barra-fill" id="reg-barra" style="width:0%"></div></div>
+            <div class="muted" id="reg-falta" style="margin-top:6px;">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">Registrar venta acumulada por hora</div>
+        <p class="muted" style="margin-bottom:8px;">Ingresa la venta <strong>acumulada</strong> y el total de <strong>boletas</strong> hasta esa hora. Puedes actualizar cualquier hora.</p>
+        <div id="horas-cont"></div>
+        <p id="reg-feedback" class="feedback"></p>
+      </div>
+    </section>
+
+    <!-- ═══════════ PANEL ═══════════ -->
+    <section id="view-panel" class="view">
+      <div class="card">
+        <div class="eyebrow">Ver día</div>
+        <div class="field"><span class="field-label">Fecha</span><input type="date" id="panel-fecha"/></div>
+      </div>
+      <div class="hero">
+        <div class="fecha" id="pan-fecha">—</div>
+        <div class="meta-label">Meta final del día (c/IVA)</div>
+        <div class="meta-val" id="pan-meta">—</div>
+        <div class="meta-sub" id="pan-meta-neta">—</div>
+      </div>
+      <div class="card">
+        <div class="cons-grid">
+          <div class="cons-field"><div class="cf-label">Venta total del día</div><div class="cf-val" id="pan-total">$0</div></div>
+          <div class="cons-field"><div class="cf-label">Boletas</div><div class="cf-val" id="pan-boletas">0</div></div>
+          <div class="cons-field span2">
+            <div class="cf-label">Cumplimiento</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+              <div class="cf-val" id="pan-pct">0%</div>
+              <span class="estado-pill no" id="pan-estado">—</span>
+            </div>
+            <div class="barra"><div class="barra-fill" id="pan-barra" style="width:0%"></div></div>
+            <div class="muted" id="pan-falta" style="margin-top:6px;">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 class="card-title">Detalle por hora</h3>
+        <div class="table-wrap" style="overflow-x:auto; border:1px solid var(--gris-200); border-radius:10px;">
+          <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead><tr>
+              <th style="text-align:left; padding:10px 12px; background:var(--gris-50); font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--gris-500);">Hora</th>
+              <th style="text-align:right; padding:10px 12px; background:var(--gris-50); font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--gris-500);">Venta acum.</th>
+              <th style="text-align:right; padding:10px 12px; background:var(--gris-50); font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--gris-500);">Boletas</th>
+            </tr></thead>
+            <tbody id="pan-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ METAS (admin) ═══════════ -->
+    <section id="view-metas" class="view">
+      <div class="card" id="metas-login">
+        <div class="eyebrow">Solo administrador</div>
+        <h2 class="card-title">Cargar metas del mes</h2>
+        <p class="muted">Identifícate para editar las metas netas de cada día. La meta c/IVA se calcula sola (×1.19).</p>
+        <div class="field" style="margin-top:12px;"><span class="field-label">Administrador</span><select id="metas-admin"></select></div>
+        <div class="field" style="margin-top:10px;"><span class="field-label">PIN</span><input type="password" inputmode="numeric" id="metas-pin" placeholder="••••"/></div>
+        <div style="margin-top:14px;"><button class="btn primary" id="btn-metas-entrar" style="width:100%;">Entrar</button></div>
+        <p id="metas-login-fb" class="feedback"></p>
+      </div>
+
+      <div id="metas-panel" class="hidden" style="display:flex; flex-direction:column; gap:14px;">
+        <div class="card">
+          <div class="eyebrow">Mes a cargar</div>
+          <div class="field"><span class="field-label">Periodo</span><input type="month" id="metas-periodo"/></div>
+          <p class="muted" style="margin-top:8px;">Escribe la <strong>meta neta</strong> por cada día. Deja en 0 los días sin meta.</p>
+          <div class="metas-grid" id="metas-grid"></div>
+          <div style="margin-top:14px;"><button class="btn primary" id="btn-guardar-metas" style="width:100%;">Guardar metas del mes</button></div>
+          <p id="metas-fb" class="feedback"></p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">Venta por Hora &nbsp;·&nbsp; CasaIdeas Algarrobo</footer>
+
+  <script>
+  'use strict';
+  const SUPABASE_URL = 'https://xfvgwbwzwqszzkmuxepv.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_IO8P8rQM-ec1d3h9_ADdhw_Da4DuimC';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const HORAS = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00'];
+  function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function clp(n){ return '$' + Math.round(Number(n)||0).toLocaleString('es-CL'); }
+  function hoyISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function periodoHoy(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+  function fechaLarga(iso){ if(!iso) return '—'; const [y,m,d]=iso.split('-'); const dd=new Date(Number(y),Number(m)-1,Number(d)); return dd.toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+
+  /* Tabs */
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('view-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'panel') cargarPanel();
+    });
+  });
+
+  /* ── REGISTRO ── */
+  let estadoHoy = null;
+  const horasCont = document.getElementById('horas-cont');
+
+  function pintarConsolidado(pref, e) {
+    document.getElementById(pref+'-meta').textContent = e.metaCiva ? clp(e.metaCiva) : 'Sin meta';
+    document.getElementById(pref+'-meta-neta').textContent = e.metaNeta ? ('Meta neta: ' + clp(e.metaNeta)) : 'El administrador aún no cargó la meta de este día';
+    document.getElementById(pref+'-total').textContent = clp(e.totalDia);
+    document.getElementById(pref+'-boletas').textContent = (Number(e.boletasDia)||0).toLocaleString('es-CL');
+    const pct = Math.round((e.cumplimiento||0)*100);
+    document.getElementById(pref+'-pct').textContent = pct + '%';
+    document.getElementById(pref+'-barra').style.width = Math.min(100, pct) + '%';
+    const est = document.getElementById(pref+'-estado');
+    if (!e.metaCiva) { est.className='estado-pill no'; est.textContent='Sin meta'; }
+    else if (e.cumplida) { est.className='estado-pill ok'; est.textContent='✅ Meta cumplida'; }
+    else { est.className='estado-pill no'; est.textContent='❌ Meta no lograda'; }
+    document.getElementById(pref+'-falta').textContent = (e.metaCiva && !e.cumplida) ? ('Faltan ' + clp(e.falta) + ' para la meta') : (e.cumplida ? ('Superó la meta por ' + clp((e.totalDia||0)-(e.metaCiva||0))) : '');
+    document.getElementById(pref+'-fecha').textContent = fechaLarga(e.fecha);
+  }
+
+  function renderHoras(e) {
+    horasCont.innerHTML = '';
+    HORAS.forEach(h => {
+      const cur = (e.porHora && e.porHora[h]) || null;
+      const row = document.createElement('div');
+      row.className = 'hora-row' + (cur ? ' registrada' : '');
+      row.innerHTML =
+        `<div class="hora-label">${h}</div>`
+        + `<div class="field"><span class="field-label">Venta acum.</span><input type="number" class="mini-input" id="v-${h}" min="0" value="${cur?cur.ventaAcumulada:''}" placeholder="$"></div>`
+        + `<div class="field"><span class="field-label">Boletas</span><input type="number" class="mini-input" id="b-${h}" min="0" value="${cur?cur.boletas:''}" placeholder="0"></div>`
+        + `<button class="btn primary btn-hora" data-h="${h}">Guardar</button>`;
+      horasCont.appendChild(row);
+    });
+    horasCont.querySelectorAll('.btn-hora').forEach(b => b.addEventListener('click', () => guardarHora(b.dataset.h, b)));
+  }
+
+  async function cargarRegistro() {
+    const fecha = hoyISO();
+    const { data, error } = await sb.rpc('estado_ventas', { p_fecha: fecha });
+    if (error) { document.getElementById('reg-feedback').textContent = 'Error: ' + error.message; document.getElementById('reg-feedback').className='feedback error'; return; }
+    estadoHoy = data;
+    pintarConsolidado('reg', data);
+    renderHoras(data);
+  }
+
+  async function guardarHora(h, btn) {
+    const v = Number(document.getElementById('v-'+h).value);
+    const b = Number(document.getElementById('b-'+h).value);
+    const fb = document.getElementById('reg-feedback');
+    if (isNaN(v) || v < 0) { fb.textContent='Venta inválida en '+h; fb.className='feedback error'; return; }
+    if (isNaN(b) || b < 0) { fb.textContent='Boletas inválidas en '+h; fb.className='feedback error'; return; }
+    btn.disabled = true; fb.textContent='Guardando '+h+'…'; fb.className='feedback';
+    const { data, error } = await sb.rpc('registrar_venta', { p_fecha: hoyISO(), p_hora: h, p_venta: v, p_boletas: b, p_cajero: '' });
+    btn.disabled = false;
+    if (error) { fb.textContent='Error: '+error.message; fb.className='feedback error'; return; }
+    estadoHoy = data;
+    pintarConsolidado('reg', data);
+    renderHoras(data);
+    fb.textContent = '✓ Guardado '+h; fb.className='feedback ok';
+  }
+
+  /* ── PANEL ── */
+  async function cargarPanel() {
+    const fInput = document.getElementById('panel-fecha');
+    if (!fInput.value) fInput.value = hoyISO();
+    const fecha = fInput.value;
+    const { data, error } = await sb.rpc('estado_ventas', { p_fecha: fecha });
+    if (error || !data) return;
+    pintarConsolidado('pan', data);
+    const tb = document.getElementById('pan-tbody'); tb.innerHTML = '';
+    HORAS.forEach(h => {
+      const cur = (data.porHora && data.porHora[h]) || null;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="padding:9px 12px; border-bottom:1px solid var(--gris-100); font-weight:700;">${h}</td>`
+        + `<td style="padding:9px 12px; border-bottom:1px solid var(--gris-100); text-align:right; font-family:monospace;">${cur?clp(cur.ventaAcumulada):'—'}</td>`
+        + `<td style="padding:9px 12px; border-bottom:1px solid var(--gris-100); text-align:right;">${cur?(Number(cur.boletas)||0).toLocaleString('es-CL'):'—'}</td>`;
+      tb.appendChild(tr);
+    });
+  }
+  document.getElementById('panel-fecha').addEventListener('change', cargarPanel);
+
+  /* ── METAS (admin) ── */
+  async function cargarAdmins() {
+    const sel = document.getElementById('metas-admin');
+    const { data } = await sb.rpc('lista_admins_ventas');
+    sel.innerHTML = (data||[]).map(r => `<option>${esc(r.nombre)}</option>`).join('');
+  }
+  let adminSesion = { nombre:'', pin:'' };
+
+  document.getElementById('btn-metas-entrar').addEventListener('click', entrarMetas);
+  document.getElementById('metas-pin').addEventListener('keydown', e => { if (e.key==='Enter') entrarMetas(); });
+  async function entrarMetas() {
+    const nombre = document.getElementById('metas-admin').value;
+    const pin = document.getElementById('metas-pin').value.trim();
+    const fb = document.getElementById('metas-login-fb');
+    if (!pin) { document.getElementById('metas-pin').focus(); return; }
+    fb.textContent='Verificando…'; fb.className='feedback';
+    // se valida al guardar; probamos con un guardado vacío no—mejor validar cargando y confiar en guardar.
+    adminSesion = { nombre, pin };
+    document.getElementById('metas-login').classList.add('hidden');
+    document.getElementById('metas-panel').classList.remove('hidden');
+    document.getElementById('metas-periodo').value = periodoHoy();
+    fb.textContent='';
+    cargarMetasMes();
+  }
+  document.getElementById('metas-periodo').addEventListener('change', cargarMetasMes);
+
+  async function cargarMetasMes() {
+    const periodo = document.getElementById('metas-periodo').value || periodoHoy();
+    const { data } = await sb.rpc('metas_mes', { p_periodo: periodo });
+    const metas = (data && data.metas) || {};
+    const [y,m] = periodo.split('-').map(Number);
+    const dias = new Date(y, m, 0).getDate();
+    const grid = document.getElementById('metas-grid'); grid.innerHTML='';
+    for (let d=1; d<=dias; d++) {
+      const val = metas[d] || '';
+      const div = document.createElement('div');
+      div.className='meta-dia';
+      div.innerHTML = `<span class="dnum">Día ${d}</span><input type="number" min="0" id="m-${d}" value="${val}" placeholder="Meta neta $">`;
+      grid.appendChild(div);
+    }
+  }
+
+  document.getElementById('btn-guardar-metas').addEventListener('click', async () => {
+    const periodo = document.getElementById('metas-periodo').value;
+    const fb = document.getElementById('metas-fb');
+    if (!periodo) { fb.textContent='Elige el mes'; fb.className='feedback error'; return; }
+    const [y,m] = periodo.split('-').map(Number);
+    const dias = new Date(y, m, 0).getDate();
+    const metas = [];
+    for (let d=1; d<=dias; d++) {
+      const el = document.getElementById('m-'+d);
+      const v = Number(el.value);
+      if (!isNaN(v) && v > 0) metas.push({ dia:d, meta:v });
+    }
+    fb.textContent='Guardando…'; fb.className='feedback';
+    const btn = document.getElementById('btn-guardar-metas'); btn.disabled=true;
+    const { data, error } = await sb.rpc('guardar_metas', { p_quien: adminSesion.nombre, p_pin: adminSesion.pin, p_periodo: periodo, p_metas: metas });
+    btn.disabled=false;
+    if (error) { fb.textContent='Error: '+error.message; fb.className='feedback error'; return; }
+    if (!data.success) { fb.textContent = data.message || 'No se pudo guardar'; fb.className='feedback error';
+      if ((data.message||'').includes('PIN')) { document.getElementById('metas-panel').classList.add('hidden'); document.getElementById('metas-login').classList.remove('hidden'); }
+      return; }
+    fb.textContent = '✓ Guardadas '+data.guardadas+' metas del mes'; fb.className='feedback ok';
+    cargarRegistro();
+  });
+
+  /* Arranque */
+  cargarRegistro();
+  cargarAdmins();
+  </script>
+</body>
+</html>
