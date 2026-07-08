@@ -122,6 +122,18 @@
 </head>
 <body>
 
+  <div id="login-gate" style="position:fixed; inset:0; background:var(--fondo); z-index:900; display:flex; align-items:center; justify-content:center; padding:20px;">
+    <div class="card" style="max-width:360px; width:100%;">
+      <div class="eyebrow">Acceso</div>
+      <h2 class="card-title">Venta por Hora</h2>
+      <p class="muted">Ingresa tu usuario y PIN de administrador para continuar.</p>
+      <div class="field" style="margin-top:12px;"><span class="field-label">Usuario</span><input type="text" id="gate-user" placeholder="Administrador" autocomplete="off"/></div>
+      <div class="field" style="margin-top:10px;"><span class="field-label">PIN</span><input type="password" inputmode="numeric" id="gate-pin" placeholder="••••" autocomplete="off"/></div>
+      <div style="margin-top:14px;"><button class="btn primary" id="gate-btn" style="width:100%;">Ingresar</button></div>
+      <p id="gate-fb" class="feedback"></p>
+    </div>
+  </div>
+
   <header class="header">
     <div class="header-inner">
       <div class="logo-wrap">
@@ -470,6 +482,21 @@
     fb.textContent = '✓ Guardadas '+data.guardadas+' metas del mes'; fb.className='feedback ok';
     cargarRegistro();
   });
+
+  /* ── Acceso (usuario + PIN) ── */
+  const ACCESO_PIN = '1234';
+  function entrarGate() {
+    const u = document.getElementById('gate-user').value.trim();
+    const p = document.getElementById('gate-pin').value.trim();
+    const fb = document.getElementById('gate-fb');
+    if (!u) { fb.textContent = 'Ingresa tu usuario'; fb.className = 'feedback error'; return; }
+    if (p !== ACCESO_PIN) { fb.textContent = 'PIN incorrecto'; fb.className = 'feedback error'; document.getElementById('gate-pin').select(); return; }
+    sessionStorage.setItem('ventas_acceso', u);
+    document.getElementById('login-gate').style.display = 'none';
+  }
+  document.getElementById('gate-btn').addEventListener('click', entrarGate);
+  document.getElementById('gate-pin').addEventListener('keydown', e => { if (e.key === 'Enter') entrarGate(); });
+  if (sessionStorage.getItem('ventas_acceso')) { document.getElementById('login-gate').style.display = 'none'; }
 
   /* Arranque */
   (function(){ const el = document.getElementById('reg-fecha-sel'); if (el) { el.value = hoyISO(); el.addEventListener('change', cargarRegistro); } })();
