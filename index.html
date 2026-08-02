@@ -278,6 +278,13 @@
         <div class="card">
           <div class="eyebrow">Mes a cargar</div>
           <div class="field"><span class="field-label">Periodo</span><input type="month" id="metas-periodo"/></div>
+          <div style="margin-top:12px; background:var(--gris-50); border:1.5px solid var(--gris-200); border-radius:11px; padding:12px;">
+            <span class="field-label">Pegar fila completa (opcional)</span>
+            <p class="muted" style="margin:4px 0 8px;">Copia la fila de metas netas desde Excel/Sheets (una celda por día) y pégala aquí. Acepta separación por <strong>tab, coma o punto y coma</strong>.</p>
+            <textarea id="metas-pegar" rows="2" placeholder="Ej: 1200000  1350000  980000  …" style="width:100%; padding:9px 11px; border:1.5px solid var(--gris-200); border-radius:9px; font-size:14px; font-family:inherit; resize:vertical;"></textarea>
+            <button class="btn" id="btn-pegar-metas" style="width:100%; margin-top:8px; background:var(--gris-100); border:1.5px solid var(--gris-300);">Rellenar días con lo pegado</button>
+            <p id="metas-pegar-fb" class="feedback" style="margin-top:6px;"></p>
+          </div>
           <p class="muted" style="margin-top:8px;">Escribe la <strong>meta neta</strong> por cada día. Deja en 0 los días sin meta.</p>
           <div class="metas-grid" id="metas-grid"></div>
           <div style="margin-top:14px;"><button class="btn primary" id="btn-guardar-metas" style="width:100%;">Guardar metas del mes</button></div>
@@ -458,6 +465,29 @@
       grid.appendChild(div);
     }
   }
+
+  document.getElementById('btn-pegar-metas').addEventListener('click', () => {
+    const periodo = document.getElementById('metas-periodo').value || periodoHoy();
+    const [y,m] = periodo.split('-').map(Number);
+    const dias = new Date(y, m, 0).getDate();
+    const fb = document.getElementById('metas-pegar-fb');
+    const raw = (document.getElementById('metas-pegar').value || '').trim();
+    if (!raw) { fb.textContent='Pega primero la fila de metas'; fb.className='feedback error'; return; }
+    const nums = raw.split(/[\t,;\n\r]+/).map(s => {
+      const limpio = s.replace(/[^0-9]/g, '');
+      return limpio ? Number(limpio) : NaN;
+    }).filter(v => !isNaN(v));
+    if (!nums.length) { fb.textContent='No se detectaron números en lo pegado'; fb.className='feedback error'; return; }
+    let puestos = 0;
+    for (let d=1; d<=dias; d++) {
+      const el = document.getElementById('m-'+d);
+      if (!el) continue;
+      if (nums[d-1] !== undefined) { el.value = nums[d-1]; puestos++; }
+    }
+    const aviso = nums.length > dias ? ` (pegaste ${nums.length}, el mes tiene ${dias} días — se usaron los primeros ${dias})` : '';
+    fb.textContent = `✓ Rellenados ${puestos} días${aviso}. Revisa y presiona Guardar.`;
+    fb.className='feedback ok';
+  });
 
   document.getElementById('btn-guardar-metas').addEventListener('click', async () => {
     const periodo = document.getElementById('metas-periodo').value;
