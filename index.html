@@ -505,11 +505,12 @@
     const btn = document.getElementById('btn-guardar-metas'); btn.disabled=true;
     const { data, error } = await sb.rpc('guardar_metas', { p_quien: adminSesion.nombre, p_pin: adminSesion.pin, p_periodo: periodo, p_metas: metas });
     btn.disabled=false;
-    if (error) { fb.textContent='Error: '+error.message; fb.className='feedback error'; return; }
-    if (!data.success) { fb.textContent = data.message || 'No se pudo guardar'; fb.className='feedback error';
-      if ((data.message||'').includes('PIN')) { document.getElementById('metas-panel').classList.add('hidden'); document.getElementById('metas-login').classList.remove('hidden'); }
+    if (error) { fb.textContent='Error: '+error.message; fb.className='feedback error'; alert('❌ Error al guardar metas (Supabase):\n\n'+error.message+'\n\nCódigo: '+(error.code||'—')+'\nDetalle: '+(error.details||'—')+'\nHint: '+(error.hint||'—')); return; }
+    if (!data || !data.success) { const msg=(data&&data.message)||'No se pudo guardar (respuesta vacía)'; fb.textContent = msg; fb.className='feedback error'; alert('⚠️ No se guardaron las metas:\n\n'+msg+'\n\nAdministrador: '+adminSesion.nombre);
+      if (msg.includes('PIN')) { document.getElementById('metas-panel').classList.add('hidden'); document.getElementById('metas-login').classList.remove('hidden'); }
       return; }
     fb.textContent = '✓ Guardadas '+data.guardadas+' metas del mes'; fb.className='feedback ok';
+    alert('✅ Guardadas '+data.guardadas+' metas del mes '+periodo);
     cargarRegistro();
   });
 
